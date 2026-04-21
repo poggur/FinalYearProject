@@ -1163,8 +1163,11 @@ MonoBehaviour:
   walkSpeed: 10
   sprintSpeed: 15
   staminaDrain: 5
+  rollSpeed: 20
+  rollTime: 0.25
   move: {fileID: -1680190386980627800, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   sprint: {fileID: -7471211009204490832, guid: 052faaac586de48259a63d0c4782560b, type: 3}
+  roll: {fileID: 8961337535403910300, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   healthBar: {fileID: 619838265}
   healthText: {fileID: 1807872560}
   staminaBar: {fileID: 75842947}
