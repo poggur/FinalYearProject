@@ -213,6 +213,15 @@ public class PlayerController : EntityClass
         attackCoroutineRunning = false;
     }
 
+    private IEnumerator ResetAttackChain()
+    {
+        yield return new WaitForSeconds(3f);
+        if(!attackCoroutineRunning && !attack.action.IsPressed())
+        {
+            currentAttackChainCount = 0;
+        }
+    }
+
     private void Start()
     {
         Cursor.visible = false;
@@ -257,6 +266,7 @@ public class PlayerController : EntityClass
         if(attack.action.IsPressed() &&  !attackCoroutineRunning && stamina > 0)
         {
             StartCoroutine(PlayerAttack());
+            StartCoroutine(ResetAttackChain());
         }
 
         //Update UI
