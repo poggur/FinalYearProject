@@ -32,7 +32,6 @@ public class EntityClass : MonoBehaviour
     protected IEnumerator ModifyHealth(int number, bool adding)
     {
         healthCoroutineRunning = true;
-        Debug.Log(adding);
         if (adding)
         {
             //Doing the healing in 3 parts

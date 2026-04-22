@@ -7,23 +7,31 @@ using System.Collections;
 
 public class PlayerController : EntityClass
 {
-    [Header("Variables for movement")]
+    [Header("Player Variables")]
     [SerializeField] private float walkSpeed = 10f;
     [SerializeField] private float sprintSpeed = 15f;
     [SerializeField] private int staminaDrain = 10;
     [SerializeField] private float rollSpeed = 20f;
     [SerializeField] private float rollTime = 0.25f;
+    [SerializeField] private int maxHealingCharges = 5;
+    [SerializeField] private int healAmount = 60;
+    [Tooltip("Should be however many attacks the attack animation has")]
+    [SerializeField] private int attackChainMax = 4;
 
     [Header("Input action references")]
     [SerializeField] private InputActionReference move;
     [SerializeField] private InputActionReference sprint;
     [SerializeField] private InputActionReference roll;
+    [SerializeField] private InputActionReference heal;
+    [SerializeField] private InputActionReference attack;
 
     [Header("UI references")]
     [SerializeField] private Image healthBar;
     [SerializeField] private TextMeshProUGUI healthText;
     [SerializeField] private Image staminaBar;
     [SerializeField] private TextMeshProUGUI staminaText;
+    [SerializeField] private Image healImage;
+    [SerializeField] private TextMeshProUGUI healText;
 
     [Header("Other References")]
     [SerializeField] private Camera mainCamera;
@@ -31,8 +39,17 @@ public class PlayerController : EntityClass
     [SerializeField] private GameObject pivotPoint;
 
     private bool rollCoroutineRunning = false;
+    private bool rollStamCooldown = false;
 
     private float moveSpeed;
+
+    private int currentHealingCharges;
+    private bool healCoroutineRunning = false;
+
+    private int currentAttackChainCount = 0;
+    private bool attackCoroutineRunning = false;
+    
+
     private float startTime;
 
     //Variable that transforms get assigned to for the TransformDirection line in MovePlayer
@@ -69,7 +86,7 @@ public class PlayerController : EntityClass
         worldDirection = worldDirection.normalized;
 
         //If sprinting is pressed and stamina greater than 0
-        if (sprint.action.IsPressed() && stamina > 0)
+        if (sprint.action.IsPressed() && stamina > 0 && !healCoroutineRunning)
         {
             //Start sprinting
             moveSpeed = sprintSpeed;
@@ -82,6 +99,10 @@ public class PlayerController : EntityClass
         else if (sprint.action.IsPressed() && stamina <= 0 )
         {
             moveSpeed = walkSpeed;
+        }
+        else if (healCoroutineRunning)
+        {
+            moveSpeed = walkSpeed / 3;
         }
         else
         {
@@ -108,25 +129,10 @@ public class PlayerController : EntityClass
         }
     }
 
-    private IEnumerator SprintRollDecision()
-    {
-        yield return new WaitForSeconds(0.5f);
-        if (sprint.action.IsPressed())
-        {
-            moveSpeed = sprintSpeed;
-        }
-        else if (!sprint.action.IsPressed())
-        {
-            StartCoroutine(PlayerRoll());
-        }
-    }
-
-
     private IEnumerator PlayerRoll()
     {
         rollCoroutineRunning = true;
-        Debug.Log(Time.time + " Regular time");
-        Debug.Log(startTime + rollTime+ " roll end time");
+        rollStamCooldown = true;
 
         float whileTime = startTime;
 
@@ -139,8 +145,6 @@ public class PlayerController : EntityClass
         //Normalize
         worldDirection = worldDirection.normalized;
 
-        Debug.Log(moveDirection);
-
         while (whileTime <= startTime + rollTime) 
         {
             whileTime += Time.deltaTime;
@@ -150,7 +154,63 @@ public class PlayerController : EntityClass
         }
 
         StartCoroutine(ModifyStamina(20, false));
+        yield return new WaitForSeconds(0.5f);
         rollCoroutineRunning = false;
+
+        yield return new WaitForSeconds(0.5f);
+        rollStamCooldown = false;
+    }
+
+    private IEnumerator PlayerHeal()
+    {
+        healCoroutineRunning = true;
+
+        currentHealingCharges -= 1;
+
+        StartCoroutine(ModifyHealth(healAmount, true));
+
+        yield return new WaitForSeconds(1f);
+
+        healCoroutineRunning = false;
+    }
+
+    private IEnumerator PlayerAttack()
+    {
+        attackCoroutineRunning = true;
+
+        switch (currentAttackChainCount)
+        {
+            case 0:
+                Debug.Log("attack 1");
+                currentAttackChainCount += 1;
+                StartCoroutine(ModifyStamina(staminaDrain, false));
+                //do animation
+                yield return new WaitForSeconds(1f);
+                break;
+            case 1:
+                Debug.Log("attack 2");
+                currentAttackChainCount += 1;
+                StartCoroutine(ModifyStamina(staminaDrain, false));
+                //do animation
+                yield return new WaitForSeconds(1f);
+                break;
+            case 2:
+                Debug.Log("attack 3");
+                currentAttackChainCount += 1;
+                StartCoroutine(ModifyStamina(staminaDrain, false));
+                //do animation
+                yield return new WaitForSeconds(1f);
+                break;
+            case 3: 
+                Debug.Log("attack 4");
+                currentAttackChainCount = 0;
+                StartCoroutine(ModifyStamina(staminaDrain * 2, false));
+                //do animation
+                yield return new WaitForSeconds(1.5f);
+                break;
+        }
+
+        attackCoroutineRunning = false;
     }
 
     private void Start()
@@ -161,6 +221,9 @@ public class PlayerController : EntityClass
         worldDirTransform = pivotPoint.transform;
 
         transform.rotation = new Quaternion(0, 0, 0, 1);
+
+        currentHealingCharges = maxHealingCharges;
+        healText.text = currentHealingCharges + " / " + maxHealingCharges;
     }
 
     // Update is called once per frame
@@ -175,15 +238,25 @@ public class PlayerController : EntityClass
         }
 
         //Stamina
-        if (!sprint.action.IsPressed() && !staminaCoroutineRunning && !roll.action.IsPressed() && !rollCoroutineRunning && stamina < 100 )
+        if (!sprint.action.IsPressed() && !staminaCoroutineRunning && !roll.action.IsPressed() && !rollStamCooldown && !attack.action.IsPressed() && !attackCoroutineRunning && stamina < 100 )
         {
             StartCoroutine(ModifyStamina(staminaDrain * 2, true));
         }
 
-        if (roll.action.IsPressed() && !rollCoroutineRunning && stamina > 20)
+        if (roll.action.IsPressed() && !rollCoroutineRunning && stamina >= 20)
         {
             startTime = Time.time;
             StartCoroutine(PlayerRoll());
+        }
+
+        if(heal.action.IsPressed() && currentHealingCharges > 0 && !healCoroutineRunning)
+        {
+            StartCoroutine(PlayerHeal());
+        }
+
+        if(attack.action.IsPressed() &&  !attackCoroutineRunning && stamina > 0)
+        {
+            StartCoroutine(PlayerAttack());
         }
 
         //Update UI
@@ -194,5 +267,10 @@ public class PlayerController : EntityClass
         float healthBarFillAmount = health / 100;
         healthBar.fillAmount = healthBarFillAmount;
         healthText.text = health + " / 100";
+    }
+
+    private void FixedUpdate()
+    {
+        healText.text = currentHealingCharges + " / " + maxHealingCharges;
     }
 }
