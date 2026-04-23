@@ -13,8 +13,8 @@ TagManager:
   - UI
   - Lockon Target
   - Attack
-  - 
-  - 
+  - NavMeshExempt
+  - Player
   - 
   - 
   - 

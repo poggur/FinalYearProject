@@ -54,8 +54,6 @@ public class CamController : MonoBehaviour
         RaycastHit hit;
         Debug.Log("TAB PRESSED");
 
-
-
         if (Physics.SphereCast(player.transform.position, sphereCastRadius, player.transform.forward, out hit, sphereCastDistance, lockonLayer))
         {
             Debug.Log(hit.transform);
