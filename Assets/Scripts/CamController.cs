@@ -9,16 +9,14 @@ public class CamController : MonoBehaviour
     [Header("Gameobject References")]
     [SerializeField] private GameObject player;
     [SerializeField] private InputActionReference togglePivotPoint;
-    //[SerializeField] private CinemachineCamera vcam;
-    
 
     [Header("Spherecast stuff")]
     [SerializeField] private float sphereCastRadius;
     [SerializeField] private float sphereCastDistance;
+    [SerializeField] private Transform playerPivotPoint;
     [SerializeField] private LayerMask lockonLayer;
 
     private Transform lockedTarget;
-    private Transform playerPivotPoint;
 
     private Camera mainCamera;
 
@@ -35,7 +33,6 @@ public class CamController : MonoBehaviour
 
         mainCamera = Camera.main;
 
-        playerPivotPoint = player.GetComponentInChildren<Transform>();
         lockedTarget = playerPivotPoint.transform;
     }
 
@@ -45,6 +42,7 @@ public class CamController : MonoBehaviour
         if (togglePivotPoint.action.IsPressed() && coroutineRunning == false)
         {
             coroutineRunning = true;
+            Debug.DrawRay(playerPivotPoint.transform.position, playerPivotPoint.transform.forward, Color.green, sphereCastDistance, false);
             StartCoroutine(ToggleCameraTarget());
         }
     }
@@ -54,7 +52,9 @@ public class CamController : MonoBehaviour
         RaycastHit hit;
         Debug.Log("TAB PRESSED");
 
-        if (Physics.SphereCast(player.transform.position, sphereCastRadius, player.transform.forward, out hit, sphereCastDistance, lockonLayer))
+        Debug.Log(Physics.SphereCast(playerPivotPoint.transform.position, sphereCastRadius, playerPivotPoint.transform.forward, out hit, sphereCastDistance, lockonLayer));
+
+        if (Physics.SphereCast(playerPivotPoint.transform.position, sphereCastRadius, playerPivotPoint.transform.forward, out hit, sphereCastDistance, lockonLayer))
         {
             Debug.Log(hit.transform);
             //locked onto enemy

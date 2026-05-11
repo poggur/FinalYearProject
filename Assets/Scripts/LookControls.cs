@@ -12,7 +12,7 @@ public class LookControls : MonoBehaviour
     private Vector2 mousePos;
     public bool mouseEnabled = true;
 
-    public Transform lockTarget;
+    [HideInInspector] public Transform lockTarget;
 
     private void MouseControls()
     {
@@ -22,13 +22,12 @@ public class LookControls : MonoBehaviour
         float mouseYRotation = mousePos.y * mouseSens;
 
         transform.Rotate(0, mouseXRotation, 0);
-
     }
 
     private void LockedControls(Transform target)
     {
         transform.LookAt(target, Vector3.up);
-        transform.rotation = Quaternion.Euler(0, transform.rotation.eulerAngles.y, 0);
+        transform.rotation = Quaternion.Euler(0, transform.rotation.eulerAngles.y + 90, 0);
     }
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created

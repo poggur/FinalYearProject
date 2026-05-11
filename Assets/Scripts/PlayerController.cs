@@ -4,6 +4,7 @@ using UnityEngine.UI;
 using TMPro;
 using Unity.VisualScripting;
 using System.Collections;
+using UnityEngine.SceneManagement;
 
 public class PlayerController : EntityClass
 {
@@ -17,6 +18,12 @@ public class PlayerController : EntityClass
     [SerializeField] private int healAmount = 60;
     [Tooltip("Should be however many attacks the attack animation has")]
     [SerializeField] private int attackChainMax = 4;
+
+    [Header("Spherecast stuff")]
+    [SerializeField] private float attackRadius = 3;
+    [SerializeField] private float attackRange = 5;
+    [SerializeField] private int attackDamage = 5;
+    [SerializeField] private LayerMask lockonLayer;
 
     [Header("Input action references")]
     [SerializeField] private InputActionReference move;
@@ -37,6 +44,7 @@ public class PlayerController : EntityClass
     [SerializeField] private Camera mainCamera;
     [SerializeField] private CharacterController characterController;
     [SerializeField] private GameObject pivotPoint;
+    [SerializeField] private Animator animator;
 
     private bool rollCoroutineRunning = false;
     private bool rollStamCooldown = false;
@@ -169,7 +177,7 @@ public class PlayerController : EntityClass
 
         StartCoroutine(ModifyHealth(healAmount, true));
 
-        yield return new WaitForSeconds(1f);
+        yield return new WaitForSeconds(0.75f);
 
         healCoroutineRunning = false;
     }
@@ -177,6 +185,7 @@ public class PlayerController : EntityClass
     private IEnumerator PlayerAttack()
     {
         attackCoroutineRunning = true;
+        RaycastHit hit;
 
         switch (currentAttackChainCount)
         {
@@ -184,28 +193,68 @@ public class PlayerController : EntityClass
                 Debug.Log("attack 1");
                 currentAttackChainCount += 1;
                 StartCoroutine(ModifyStamina(staminaDrain, false));
-                //do animation
+
+                Debug.Log(Physics.SphereCast(transform.position, attackRadius, -transform.right, out hit, attackRange, lockonLayer));
+                Debug.DrawRay(transform.position, -transform.right, Color.green, attackRange, false);
+
+                if (Physics.SphereCast(transform.position, attackRadius, transform.forward, out hit, attackRange, lockonLayer))
+                {
+                    Debug.Log("target hit");
+                    GameObject childTarget = hit.transform.gameObject;
+
+                    BossController parentTarget = childTarget.GetComponentInParent<BossController>();
+
+                    parentTarget.TookDamage(attackDamage);
+                }
+
                 yield return new WaitForSeconds(1f);
                 break;
             case 1:
                 Debug.Log("attack 2");
                 currentAttackChainCount += 1;
                 StartCoroutine(ModifyStamina(staminaDrain, false));
-                //do animation
+
+                if (Physics.SphereCast(transform.position, attackRadius, -transform.right, out hit, attackRange, lockonLayer))
+                {
+                    GameObject childTarget = hit.transform.gameObject;
+
+                    BossController parentTarget = childTarget.GetComponentInParent<BossController>();
+
+                    parentTarget.TookDamage(attackDamage);
+                }
+
                 yield return new WaitForSeconds(1f);
                 break;
             case 2:
                 Debug.Log("attack 3");
                 currentAttackChainCount += 1;
                 StartCoroutine(ModifyStamina(staminaDrain, false));
-                //do animation
+
+                if (Physics.SphereCast(transform.position, attackRadius, -transform.right, out hit, attackRange, lockonLayer))
+                {
+                    GameObject childTarget = hit.transform.gameObject;
+
+                    BossController parentTarget = childTarget.GetComponentInParent<BossController>();
+
+                    parentTarget.TookDamage(attackDamage);
+                }
+
                 yield return new WaitForSeconds(1f);
                 break;
             case 3: 
                 Debug.Log("attack 4");
                 currentAttackChainCount = 0;
                 StartCoroutine(ModifyStamina(staminaDrain * 2, false));
-                //do animation
+
+                if (Physics.SphereCast(transform.position, attackRadius, -transform.right, out hit, attackRange, lockonLayer))
+                {
+                    GameObject childTarget = hit.transform.gameObject;
+
+                    BossController parentTarget = childTarget.GetComponentInParent<BossController>();
+
+                    parentTarget.TookDamage(attackDamage * 2);
+                }
+
                 yield return new WaitForSeconds(1.5f);
                 break;
         }
@@ -244,6 +293,11 @@ public class PlayerController : EntityClass
         if (move.action.IsPressed() && moveDirection != new Vector2(0, 0))
         {
             MovePlayer(moveDirection);
+            animator.SetBool("IsWalking", true);
+        }
+        else if (!move.action.IsPressed())
+        {
+            animator.SetBool("IsWalking", false);
         }
 
         //Stamina
@@ -277,6 +331,11 @@ public class PlayerController : EntityClass
         float healthBarFillAmount = health / 100;
         healthBar.fillAmount = healthBarFillAmount;
         healthText.text = health + " / 100";
+
+        if(health <= 0)
+        {
+            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+        }
     }
 
     private void FixedUpdate()
